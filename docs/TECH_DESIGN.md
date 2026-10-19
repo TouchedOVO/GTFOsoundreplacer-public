@@ -1,0 +1,41 @@
+# 实现说明
+
+GTFOSoundReplacer把游戏的音效事件映射到自定义Wwise SoundBank事件。插件运行于BepInEx 6 IL2CPP，界面使用Unity IMGUI，播放和音量控制调用游戏自带的AkSoundEngine。
+
+## 工程结构
+
+GTFOSoundReplacer目录是唯一的插件工程。Audio包含事件拦截、映射表、SoundBank播放器和监听者维护；Presets处理JSON预设；UI提供音效目录、搜索、分配和试听。Plugin初始化配置、预设、Harmony补丁和界面组件。
+
+所有生产源码由GTFOSoundReplacer.csproj编译。tests直接编译这些源码并提供外部依赖替身。测试在独立进程中运行。
+
+## 播放流程
+
+Harmony拦截CellSoundPlayer.Post的四个无回调重载。没有启用映射、没有分配替换事件或替换提交失败时，游戏继续执行原Post。命中映射时，SoundReplacer计算音量并让SoundBankPlayer提交自定义事件；muteOriginal决定是否跳过原Post。配置音量为零时不提交替换事件。
+
+游戏内替换和界面试听共用一个持久发声对象。首次播放创建Unity GameObject并注册到Wwise，后续复用。PostEvent返回的Playing ID只用于当次音量设置，不保存原游戏播放实例到替换实例的映射。
+
+原音试听也通过插件对象提交。它与关闭替换后由游戏自己的对象播放原音是两条不同路径。替换会跳过原Event内的非播放动作；当前实现没有转发原播放实例的停止、暂停或恢复控制。
+
+## 音量与监听者
+
+音量由单项倍率和全局倍率计算，最终限制在0到2。没有配置VolumeRTPC时，播放器设置共享对象的输出增益；配置后则按Playing ID设置RTPC。
+
+接近1的音量保留提前返回行为，因此不同音效可能继承共享对象先前的输出增益。界面的单项数值不代表同时播放的每条声音都有独立增益。播放器修改Unity Transform，但没有独立同步Wwise位置，不保证与原游戏对象的空间音频行为一致。
+
+本机Wwise在设置对象输出增益时会复制默认监听者连接。默认列表变化后，ListenerRouting在同一提交锁内，按顺序对插件拥有的默认模式对象提交ResetListenersToDefault与缓存的非单位对象增益。显式监听者配置不受这项维护影响。维护失败保留重试状态，在下一次Post前重试。退出时关闭后续维护与播放入口。
+
+API成功只说明命令已提交。实际播放仍需在游戏中检查；使用替身的代码测试不证明原生音频队列已经执行，也不证明声音可听。
+
+## 音库管理
+
+用户在SoundBank面板加载音库目录。LoadBank读取文件、分配16字节对齐内存，成功后保存Bank ID和内存地址。内存释放与卸载在SoundBankPlayer中管理。播放事件前应确保音库已经加载，插件启动时不自动扫描目录。
+
+音库中的随机容器由Wwise执行，插件只提交事件。随机变体不由预设中的文件列表选择。
+
+## 预设格式
+
+替换项保存eventId、enabled、volume、muteOriginal和bankEventId。eventId是目标游戏事件，bankEventId是自定义音库事件，零表示未分配。
+
+PresetCodec统一处理保存、加载、导入和导出。新保存的JSON没有来源类型字段。读取带来源标记的已有SoundBank预设时进行兼容检查；不支持的标记会使整份加载失败，当前映射保持不变。JSON必须完整读取并验证后才应用到映射表。
+
+启动优先尝试配置的默认预设，失败后尝试自动保存。导入将验证后的预设写入预设目录，不直接应用；导出在exports子目录生成规范副本，保留原文件。
