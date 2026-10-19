@@ -3,6 +3,7 @@
 GTFOSoundReplacer 通过 Wwise 播放 `.bnk` 中的事件。准备音频后，需要在 Wwise Authoring 中制作事件并生成 Windows SoundBank。Authoring 版本应与游戏音频引擎兼容，具体版本需根据目标游戏环境核对。
 
 ## 制作音库
+前置：下载 Wwise Authoring，版本号为2017.1.9.6501版本，该版本为GTFO声音库默认构建版本，其他版本未经测试，可能存在不兼容的报错问题，作者并不能提供兼容帮助。
 
 1. 创建 Wwise 工程，启用 Windows 平台。
 2. 在 Actor-Mixer Hierarchy 中导入音频，创建 Sound SFX。
