@@ -1,8 +1,8 @@
 # GTFOSoundReplacer
 
-GTFO 的游戏内音效替换插件，使用 BepInEx 6 IL2CPP。按 F8 打开列表，为游戏音效分配 Wwise SoundBank 事件，试听、调整音量并保存预设。SoundBank 中制作的随机播放可以保留。
+GTFO 的游戏内音效替换插件，使用 BepInEx 6 IL2CPP。按 F8 打开列表，为游戏音效分配 Wwise SoundBank 事件，试听、调整音量并保存预设。
 
-当前源码版本为 1.0.2，已通过构建和180项代码检查，尚未进行本版本的实机验收。更新内容见[版本记录](CHANGELOG.md)，检查方法见[构建说明](docs/BUILD_VERIFY.md)。
+当前源码版本为 1.0.2，尚未进行本版本的实机验收。更新内容见[版本记录](CHANGELOG.md)，检查方法见[构建说明](docs/BUILD_VERIFY.md)。
 
 ## 安装与使用
 
