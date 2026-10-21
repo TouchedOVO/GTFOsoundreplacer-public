@@ -13,6 +13,7 @@ namespace GTFOSoundReplacer.Presets
     public class PresetManager : IPresetManager
     {
         public static PresetManager Instance { get; private set; }
+        public string LastImportedName { get; private set; } = "";
 
         private const string AutosaveName = "_autosave";
 
@@ -100,7 +101,10 @@ namespace GTFOSoundReplacer.Presets
 
         public bool Import(string filePath)
         {
-            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return false;
+            LastImportedName = "";
+            if (string.IsNullOrWhiteSpace(filePath)) return false;
+            filePath = filePath.Trim().Trim('"');
+            if (!File.Exists(filePath)) return false;
             try
             {
                 string json = File.ReadAllText(filePath);
@@ -111,11 +115,14 @@ namespace GTFOSoundReplacer.Presets
                     ? Path.GetFileNameWithoutExtension(filePath)
                     : data.Name;
 
-                WriteFile(SanitizeName(name), data);
+                string savedName = SanitizeName(name);
+                WriteFile(savedName, data);
+                LastImportedName = savedName;
                 return true;
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Log.LogWarning("Preset import failed: " + e.Message);
                 return false;
             }
         }

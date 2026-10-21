@@ -38,7 +38,7 @@ namespace GTFOSoundReplacer.Audio
 
         /// <summary>
         /// 打印 [SR-ID] 诊断行。id 与 name 分步容错：
-        /// 名称反向索引（SoundCatalog.LookupName，懒构建 2244 条）即使抛异常，id 部分也一定照常打印；
+        /// 名称反向索引（SoundCatalog.LookupName，读取当前内存快照）即使抛异常，id 部分也一定照常打印；
         /// 任何一步异常都被就地消化并（仅首次）告警，绝不向音频热路径冒泡。
         /// </summary>
         private static void LogEventId(uint eventId)

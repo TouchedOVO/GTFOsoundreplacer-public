@@ -49,6 +49,9 @@ public static class PresetManagerChecks
    foreach(var marker in new[]{"",",\"sourceType\":\"SoundBank\"",",\"sourceType\":1"}) {
     string incoming=Path.Combine(external,"incoming.json");string json=Json("compatible",marker);File.WriteAllText(incoming,json);
     Check(manager.Import(incoming),"compatible import succeeds");
+    Check(manager.LastImportedName=="compatible","import reports saved name rather than source filename");
+    Check(!manager.Import(Path.Combine(external,"missing-after-success.json")) && manager.LastImportedName=="","failed import clears old result name");
+    Check(manager.Import(((char)34).ToString() + incoming + ((char)34).ToString()) && manager.LastImportedName=="compatible","quoted Windows copy-as-path is accepted");
     Check(Unchanged(map,sentinel),"successful Import saves preset without changing active map");
     Check(!File.ReadAllText(Path.Combine(presets,"compatible.json")).Contains("sourceType"),"imported file is normalized");
     Check(File.ReadAllText(incoming)==json,"successful Import leaves external input unchanged");

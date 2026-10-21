@@ -5,6 +5,7 @@ using System.Text.Json;
 using GTFOSoundReplacer.Audio;
 using GTFOSoundReplacer.Presets;
 using GTFOSoundReplacer.UI;
+using GTFOSoundReplacer.Catalog;
 
 public static class CoreTests
 {
@@ -39,18 +40,20 @@ public static class CoreTests
         Check(new ReplacementEntry{Volume=1}.EffectiveVolume(-1)==0,"negative global volume silences");
         Check(new ReplacementEntry().Enabled && new ReplacementEntry().MuteOriginal,"entry defaults remain enabled and mute original");
 
-        var catalog=SoundCatalog.LoadDefault();
-        Check(catalog.Count>2000,"embedded catalog is populated");
+        var catalog=new SoundCatalog(new CatalogDocument { Events = new List<EventRecord> {
+            new EventRecord { Id=2182337294, Name="melee_charged", Category="Weapon" },
+            new EventRecord { Id=493397974, Name="ScoutDeath", Category="Enemy" }
+        }});
+        Check(catalog.Count==2,"catalog uses supplied event set");
         var ids=new HashSet<uint>();bool unique=true;foreach(var e in catalog.Entries)unique &= e.EventId!=0 && ids.Add(e.EventId);
         Check(unique,"catalog has unique nonzero event IDs");
         Check(Size(catalog.Search("Scout"))>0,"event-name search matches Scout");
         Check(Size(catalog.Search("2182337294"))==1,"numeric search finds charged event");
         Check(Size(catalog.Search("no_such_sound_012345"))==0,"unknown query returns no events");
         Check(Size(catalog.Search("  "))==catalog.Count,"blank query preserves complete catalog");
-        Check(SoundCatalog.LookupName(2182337294)=="melee_charged","reverse lookup finds charged event");
+        Check(catalog.FindName(2182337294)=="melee_charged","reverse lookup finds charged event");
         Check(SoundCatalog.LookupName(0)=="","unknown lookup returns empty name");
-        var tiny=new SoundCatalog();tiny.Add(null);tiny.Add(new SoundEntry{EventId=0});tiny.Add(new SoundEntry{EventId=1,Name="first"});tiny.Add(new SoundEntry{EventId=1,Name="duplicate"});
-        Check(tiny.Count==1 && tiny.Entries[0].Name=="first","catalog rejects invalid and duplicate entries");
+        Check(new SoundCatalog().Count==0,"no embedded fallback event table");
         Check(new SoundEntry{EventId=1,Name="name",FriendlyName="友好"}.DisplayName=="友好 (name)","display combines friendly and event names");
 
         Check(PresetCodec.Deserialize(Json(",\"sourceType\":\"soundbank\"")).Entries.Count==1,"compatible string marker is case insensitive");

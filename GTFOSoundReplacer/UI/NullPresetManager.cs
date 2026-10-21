@@ -5,6 +5,7 @@ namespace GTFOSoundReplacer.UI
     /// <summary>预设管理的空实现（占位），t5 落地后替换。所有操作仅记录日志。</summary>
     public class NullPresetManager : IPresetManager
     {
+        public string LastImportedName => "";
         public IReadOnlyList<string> ListPresetNames()
         {
             return new List<string>();

@@ -11,6 +11,7 @@ namespace GTFOSoundReplacer
         public const string SectionGeneral = "General";
 
         public const string DefaultHotkey = "F8";
+        public const string DefaultTranslationUrl = "https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/1.0.3/catalog/zh-CN.json";
         public const string DefaultHotkeyModifier = "None";
 
         /// <summary>GUI 主键（Unity KeyCode 名称字符串，默认 F8）。</summary>
@@ -30,9 +31,12 @@ namespace GTFOSoundReplacer
 
         /// <summary>是否在日志中打印每个音效事件的 ID 与名称（用于定位音效文件，默认关闭）。</summary>
         public static ConfigEntry<bool> LogEventIds;
+        public static ConfigEntry<string> TranslationUrl;
 
         public static void BindAll(ConfigFile config)
         {
+            TranslationUrl = config.Bind<string>("Catalog", "TranslationUrl", DefaultTranslationUrl,
+                "中文事件映射 JSON 的 HTTPS raw 地址，可自行更换；留空仅用本地 catalog/zh-CN.json。后台下载失败保留缓存。");
             Hotkey = config.Bind<string>(
                 SectionGeneral,
                 "Hotkey",

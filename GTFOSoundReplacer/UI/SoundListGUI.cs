@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Il2CppInterop.Runtime.Attributes;
 using GTFOSoundReplacer.Audio;
 using GTFOSoundReplacer.Presets;
+using GTFOSoundReplacer.Catalog;
 
 namespace GTFOSoundReplacer.UI
 {
@@ -25,6 +27,9 @@ namespace GTFOSoundReplacer.UI
         private bool _windowPositioned;
         private Vector2 _scroll = Vector2.zero;
         private string _search = "";
+        private bool _showTranslation = false;
+        private string _temporaryStatus = "";
+        private long _statusExpiresTick;
         private string _presetName = "";
         private string _bankEventIdText = "";
         /// <summary>分配音库事件的目标音效 ID，由行内「选择音频」按钮设置。</summary>
@@ -65,19 +70,43 @@ namespace GTFOSoundReplacer.UI
             // 每帧在 GUI 事件处理前最后覆盖一次光标解锁，确保 IMGUI 可交互（GTFO 会锁定光标）。
             HotkeyListener.EnsureCursorUnlocked();
 
+            var currentCatalog = CatalogService.Current;
+            if (!ReferenceEquals(Catalog, currentCatalog))
+            {
+                Catalog = currentCatalog;
+                _cachedSearch = null;
+            }
+
             CenterWindowOnce();
 
             GUILayout.BeginArea(_windowRect);
             DrawHeader();
+            bool showTranslation = GUILayout.Toggle(_showTranslation, "显示翻译");
+            if (showTranslation != _showTranslation)
+            {
+                _showTranslation = showTranslation;
+                _temporaryStatus = showTranslation ? "翻译已开启" : "翻译已关闭";
+                _statusExpiresTick = System.Diagnostics.Stopwatch.GetTimestamp()
+                    + 3 * System.Diagnostics.Stopwatch.Frequency;
+            }
             DrawToolbar();
             DrawSearchBar();
             DrawSoundList();
+            // Scroll view takes the remaining height; this final row stays at the window's bottom right.
+            GUILayout.BeginHorizontal();
+            // FlexibleSpace is a throwing unstripping stub in GTFO; use the existing native Label/ExpandWidth path.
+            GUILayout.Label("", GUILayout.ExpandWidth(true));
+            string status = System.Diagnostics.Stopwatch.GetTimestamp() < _statusExpiresTick
+                ? _temporaryStatus : CatalogService.Status;
+            GUILayout.Label(status, GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
             GUILayout.EndArea();
 
             if (_showBankPicker)
                 DrawBankPicker();
         }
 
+        [HideFromIl2Cpp]
         private void CenterWindowOnce()
         {
             if (_windowPositioned) return;
@@ -91,6 +120,7 @@ namespace GTFOSoundReplacer.UI
             _windowRect.y = y < 0 ? 0 : y;
         }
 
+        [HideFromIl2Cpp]
         private void DrawHeader()
         {
             GUILayout.BeginHorizontal();
@@ -102,6 +132,7 @@ namespace GTFOSoundReplacer.UI
 
         // ---------------- 工具条 ----------------
 
+        [HideFromIl2Cpp]
         private void DrawToolbar()
         {
             GUILayout.BeginHorizontal();
@@ -122,28 +153,94 @@ namespace GTFOSoundReplacer.UI
             DrawPresetBar();
         }
 
+        [HideFromIl2Cpp]
         private void DrawPresetBar()
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("预设", GUILayout.Width(40));
             _presetName = GUILayout.TextField(_presetName, GUILayout.Width(140));
-            if (GUILayout.Button("保存", GUILayout.Width(48)))
-                Presets?.Save(_presetName);
-            if (GUILayout.Button("加载", GUILayout.Width(48)))
-                Presets?.Load(_presetName);
-            if (GUILayout.Button("删除", GUILayout.Width(48)))
-                Presets?.Delete(_presetName);
-            if (GUILayout.Button("导出", GUILayout.Width(48)))
-            {
-                string p = Presets?.Export(_presetName);
-                if (Plugin.Instance != null && !string.IsNullOrEmpty(p))
-                    Plugin.Instance.Log.LogInfo("Preset exported: " + p);
-            }
-            if (GUILayout.Button("导入", GUILayout.Width(48)))
-                Presets?.Import(_presetName);
+            if (GUILayout.Button("保存", GUILayout.Width(48))) RunPresetAction("保存");
+            if (GUILayout.Button("加载", GUILayout.Width(48))) RunPresetAction("加载");
+            if (GUILayout.Button("删除", GUILayout.Width(48))) RunPresetAction("删除");
+            if (GUILayout.Button("导出", GUILayout.Width(48))) RunPresetAction("导出");
+            if (GUILayout.Button("导入", GUILayout.Width(48))) RunPresetAction("导入");
             GUILayout.EndHorizontal();
         }
 
+        [HideFromIl2Cpp]
+        private void ReportPresetStatus(string message, bool failed = false)
+        {
+            _temporaryStatus = message;
+            _statusExpiresTick = System.Diagnostics.Stopwatch.GetTimestamp()
+                + 5 * System.Diagnostics.Stopwatch.Frequency;
+            if (Plugin.Instance == null) return;
+            if (failed) Plugin.Instance.Log.LogWarning("[Preset] " + message);
+            else Plugin.Instance.Log.LogInfo("[Preset] " + message);
+        }
+
+        [HideFromIl2Cpp]
+        private void RunPresetAction(string action)
+        {
+            string input = _presetName.Trim();
+            if (Presets == null || Presets is NullPresetManager)
+            {
+                ReportPresetStatus("预设管理尚未就绪", true);
+                return;
+            }
+            if (input.Length == 0)
+            {
+                ReportPresetStatus(action == "导入" ? "请先填写要导入文件的完整路径" : "请先填写预设名称", true);
+                return;
+            }
+            try
+            {
+                switch (action)
+                {
+                    case "保存":
+                        Presets.Save(input);
+                        ReportPresetStatus("已保存预设：" + input);
+                        break;
+                    case "加载":
+                        if (Presets.Load(input))
+                        {
+                            _cachedSearch = null;
+                            ReportPresetStatus("已加载预设：" + input);
+                        }
+                        else ReportPresetStatus("加载失败：未找到或无法读取预设，请检查名称", true);
+                        break;
+                    case "删除":
+                        bool deleted = Presets.Delete(input);
+                        ReportPresetStatus(deleted ? "已删除预设：" + input : "删除失败：未找到预设或无法删除", !deleted);
+                        break;
+                    case "导出":
+                        string path = Presets.Export(input);
+                        if (string.IsNullOrEmpty(path)) ReportPresetStatus("导出失败：请检查预设名称和文件", true);
+                        else
+                        {
+                            ReportPresetStatus("已导出到 presets/exports：" + input);
+                            Plugin.Instance?.Log.LogInfo("Preset exported: " + path);
+                        }
+                        break;
+                    case "导入":
+                        string file = input.Trim('"');
+                        if (!File.Exists(file)) ReportPresetStatus("导入失败：找不到文件，请填写完整路径", true);
+                        else if (Presets.Import(file))
+                        {
+                            _presetName = Presets.LastImportedName;
+                            ReportPresetStatus("已导入：" + _presetName + "，点击加载应用");
+                        }
+                        else ReportPresetStatus("导入失败：文件格式无效或无法写入，请查看日志", true);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance?.Log.LogWarning("[Preset] " + action + " failed: " + e);
+                ReportPresetStatus(action + "失败，请查看日志", true);
+            }
+        }
+
+        [HideFromIl2Cpp]
         private void SetAllEnabled(bool value)
         {
             if (Replacer == null || Replacer.Map == null) return;
@@ -154,6 +251,7 @@ namespace GTFOSoundReplacer.UI
         }
 
         /// <summary>该 eventId 是否有「已启用」的替换项（供「只看已启用」过滤）。</summary>
+        [HideFromIl2Cpp]
         private bool IsEnabledReplacement(uint eventId)
         {
             ReplacementEntry entry = GetEntry(eventId);
@@ -162,6 +260,7 @@ namespace GTFOSoundReplacer.UI
 
         // ---------------- 搜索 ----------------
 
+        [HideFromIl2Cpp]
         private void DrawSearchBar()
         {
             GUILayout.BeginHorizontal();
@@ -177,6 +276,7 @@ namespace GTFOSoundReplacer.UI
 
         // ---------------- 列表 ----------------
 
+        [HideFromIl2Cpp]
         private void DrawSoundList()
         {
             RefreshListCache();
@@ -221,6 +321,7 @@ namespace GTFOSoundReplacer.UI
             DrawPager(pageCount, total);
         }
 
+        [HideFromIl2Cpp]
         private void RefreshListCache()
         {
             // 首次绘制或筛选条件变化时重算过滤与分组。
@@ -262,6 +363,7 @@ namespace GTFOSoundReplacer.UI
             _currentPage = 0;
         }
 
+        [HideFromIl2Cpp]
         private void DrawPager(int pageCount, int totalCount)
         {
             bool canPrev = _currentPage > 0;
@@ -285,6 +387,7 @@ namespace GTFOSoundReplacer.UI
             GUILayout.EndHorizontal();
         }
 
+        [HideFromIl2Cpp]
         private int GroupCount(SoundCategory category)
         {
             if (_groups.TryGetValue(category, out List<SoundEntry> group))
@@ -292,6 +395,7 @@ namespace GTFOSoundReplacer.UI
             return 0;
         }
 
+        [HideFromIl2Cpp]
         private void DrawRow(SoundEntry se)
         {
             ReplacementEntry entry = GetEntry(se.EventId);
@@ -299,7 +403,7 @@ namespace GTFOSoundReplacer.UI
             GUILayout.BeginHorizontal();
 
             // 名称、ID 及已分配的音库事件
-            string label = se.DisplayName + "  [" + se.EventId + "]";
+            string label = se.GetDisplayName(_showTranslation) + "  [" + se.EventId + "]";
             if (entry != null && entry.BankEventId != 0)
                 label += "  → bank:" + entry.BankEventId;
             // 注：GUILayout.MinWidth 在 GTFO 的 IL2CPP 下会触发 ObjectCollectedException，
@@ -337,6 +441,7 @@ namespace GTFOSoundReplacer.UI
 
         // ---------------- 音库事件分配 ----------------
 
+        [HideFromIl2Cpp]
         private void DrawBankPicker()
         {
             GUILayout.BeginArea(_pickerRect);
@@ -344,6 +449,7 @@ namespace GTFOSoundReplacer.UI
             GUILayout.EndArea();
         }
 
+        [HideFromIl2Cpp]
         private void DrawBankPickerContent()
         {
             GUILayout.BeginHorizontal();
@@ -379,6 +485,7 @@ namespace GTFOSoundReplacer.UI
             GUILayout.EndHorizontal();
         }
 
+        [HideFromIl2Cpp]
         private void OpenBankPicker(uint eventId)
         {
             _pickerEventId = eventId;
@@ -390,6 +497,7 @@ namespace GTFOSoundReplacer.UI
                 : "";
         }
 
+        [HideFromIl2Cpp]
         private void AssignBankEvent()
         {
             if (uint.TryParse(_bankEventIdText, out uint eventId) && eventId != 0)
@@ -400,6 +508,7 @@ namespace GTFOSoundReplacer.UI
             }
         }
 
+        [HideFromIl2Cpp]
         private void ClearReplacement(uint eventId)
         {
             ReplacementEntry entry = GetEntry(eventId);
@@ -409,6 +518,7 @@ namespace GTFOSoundReplacer.UI
             _showBankPicker = false;
         }
 
+        [HideFromIl2Cpp]
         private void LoadAllBanks()
         {
             if (Replacer == null)
@@ -439,6 +549,7 @@ namespace GTFOSoundReplacer.UI
 
         // ---------------- 试听 ----------------
 
+        [HideFromIl2Cpp]
         private void PreviewReplacement(SoundEntry se, ReplacementEntry entry)
         {
             if (entry == null || Replacer == null) return;
@@ -451,6 +562,7 @@ namespace GTFOSoundReplacer.UI
             Replacer.PreviewBank.Play(entry, AudioHook.ListenerPosition(), volume);
         }
 
+        [HideFromIl2Cpp]
         private void PreviewOriginal(SoundEntry se)
         {
             if (Replacer == null) return;
@@ -467,6 +579,7 @@ namespace GTFOSoundReplacer.UI
 
         // ---------------- 辅助 ----------------
 
+        [HideFromIl2Cpp]
         private ReplacementEntry GetEntry(uint eventId)
         {
             if (Replacer == null || Replacer.Map == null) return null;
@@ -474,6 +587,7 @@ namespace GTFOSoundReplacer.UI
             return entry;
         }
 
+        [HideFromIl2Cpp]
         private ReplacementEntry GetOrCreateEntry(uint eventId)
         {
             ReplacementEntry entry = GetEntry(eventId);

@@ -4,6 +4,8 @@ using HarmonyLib;
 using GTFOSoundReplacer.Audio;
 using GTFOSoundReplacer.Presets;
 using GTFOSoundReplacer.UI;
+using GTFOSoundReplacer.Catalog;
+using System.IO;
 
 namespace GTFOSoundReplacer
 {
@@ -17,7 +19,7 @@ namespace GTFOSoundReplacer
     {
         public const string GUID = "dev.gtfo.GTFOSoundReplacer";
         public const string NAME = "GTFOSoundReplacer";
-        public const string VERSION = "1.0.2";
+        public const string VERSION = "1.0.3";
 
         /// <summary>当前插件实例（供其他模块访问 Log / Config）。</summary>
         public static Plugin Instance { get; private set; }
@@ -34,6 +36,12 @@ namespace GTFOSoundReplacer
 
             // 2. 确保运行时目录存在（presets/、BepInEx\Assets\SoundBank\）
             DirectoryManager.EnsureRuntimeDirectories();
+
+            CatalogService.Start(
+                Path.Combine(Paths.GameRootPath, "GTFO_Data", "StreamingAssets", "GeneratedSoundBanks", "Windows"),
+                Path.Combine(DirectoryManager.PluginDirectory, "catalog"),
+                PluginConfig.TranslationUrl.Value,
+                message => Log.LogInfo(message), message => Log.LogWarning(message));
 
             // 初始化替换映射和SoundBank播放器。
             SoundReplacer.Initialize();

@@ -164,9 +164,19 @@
   <ItemGroup>
     <Compile Include="*.cs" />
     <Compile Include="Audio\*.cs" />
-    <Compile Include="UI\*.cs" />
+    <Compile Include="UI\*.cs" Exclude="UI\SoundCatalogData.generated.cs" />
+    <Compile Include="Catalog\*.cs" />
     <Compile Include="Presets\*.cs" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <Reference Include="System.Collections"><HintPath>$(Net6Framework)\System.Collections.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Security.Cryptography.Algorithms"><HintPath>$(Net6Framework)\System.Security.Cryptography.Algorithms.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Security.Cryptography.Primitives"><HintPath>$(Net6Framework)\System.Security.Cryptography.Primitives.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Net.Http"><HintPath>$(Net6Framework)\System.Net.Http.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Threading"><HintPath>$(Net6Framework)\System.Threading.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup><Reference Include="System.Private.Uri"><HintPath>$(Net6Framework)\System.Private.Uri.dll</HintPath><Private>false</Private></Reference></ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

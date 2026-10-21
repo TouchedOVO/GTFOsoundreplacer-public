@@ -19,7 +19,8 @@ $files = switch ($Suite) {
         'Audio/ReplacementEntry.cs','Audio/ReplacementMap.cs',
         'Presets/PresetData.cs','Presets/PresetCodec.cs','Presets/PresetManager.cs',
         'UI/IPresetManager.cs','UI/SoundEntry.cs','UI/SoundCategory.cs','UI/ISoundCatalog.cs',
-        'UI/SoundCatalog.cs','UI/SoundCatalogData.generated.cs',
+        'UI/SoundCatalog.cs','Catalog/CatalogFiles.cs','Catalog/CatalogService.cs',
+        'tests/CatalogChecks.cs',
         'tests/CoreTests.cs','tests/PresetManagerChecks.cs'
     ) }
 }
@@ -29,6 +30,7 @@ if ($Suite -eq 'Core') {
     $references = @(Get-ChildItem -LiteralPath (Join-Path $PSHOME 'ref') -Filter '*.dll' | ForEach-Object FullName)
     Add-Type -Path $paths -ReferencedAssemblies $references
     "Core production checks passed: $([CoreTests]::Run())"
+    "Catalog production checks passed: $([CatalogChecks]::Run())"
     "Preset manager production checks passed: $([PresetManagerChecks]::Run())"
 } else {
     Add-Type -Path $paths

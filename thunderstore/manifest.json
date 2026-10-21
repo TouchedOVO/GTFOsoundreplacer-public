@@ -1,6 +1,6 @@
 {
   "name": "GTFOSoundReplacer",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/TouchedOVO/GTFOsoundreplacer-public",
   "description": "GTFO 游戏内音效替换插件。为游戏音效分配 Wwise SoundBank 事件，支持试听、音量调整、预设保存和 SoundBank 内随机播放。默认 F8 打开界面，运行于 BepInEx 6 IL2CPP。",
   "dependencies": [

@@ -36,4 +36,5 @@ if ([string]::IsNullOrWhiteSpace($Net6Framework) -or !(Test-Path -LiteralPath (J
 & $MSBuild $project /nologo /verbosity:minimal "/p:Configuration=$Configuration" "/p:GTFO=$GTFO" "/p:BepInEx=$(Join-Path $GTFO 'BepInEx')" "/p:Net6Framework=$Net6Framework"
 if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE" }
 $out = Join-Path $PSScriptRoot "GTFOSoundReplacer/bin/$Configuration/GTFOSoundReplacer.dll"
+& (Join-Path $PSScriptRoot 'GTFOSoundReplacer/tests/UnityGuiCompatibility.ps1') -Plugin $out -BepInExRoot (Join-Path $GTFO 'BepInEx')
 Write-Host "Output: $out"

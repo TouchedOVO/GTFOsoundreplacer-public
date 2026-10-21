@@ -9,6 +9,9 @@ namespace GTFOSoundReplacer.UI
     {
         IReadOnlyList<string> ListPresetNames();
 
+        /// <summary>Actual saved name of the latest successful import; empty after a failed attempt.</summary>
+        string LastImportedName { get; }
+
         /// <summary>把当前映射表保存为指定名称的预设。</summary>
         void Save(string name);
 

@@ -6,17 +6,17 @@
 
 ## 下载与使用
 
-[下载中文翻译文件（zh-CN.json）](https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/zh-cn-draft/catalog/zh-CN.json)
+[下载中文翻译文件（zh-CN.json）](https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/1.0.3/catalog/zh-CN.json)
 
-**当前公开的 1.0.2 版本尚未接入这份翻译表。** 以下方法适用于支持外部翻译的插件版本。
+**1.0.3 已支持自动下载与本地翻译。** 按 F8 后勾选“显示翻译”即可显示中文；默认不勾选。
 
 ### 自动下载
 
-在插件配置文件的 `[Catalog]` 部分，将 `TranslationUrl` 设置为：
+首次安装 1.0.3 会使用以下默认地址。需要更换时，在插件配置文件的 `[Catalog]` 部分修改 `TranslationUrl`：
 
 ```ini
 [Catalog]
-TranslationUrl = https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/zh-cn-draft/catalog/zh-CN.json
+TranslationUrl = https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/1.0.3/catalog/zh-CN.json
 ```
 
 插件会在启动时尝试获取最新翻译。成功下载后会保存在本地，后续即使网络不可用，也能继续使用已保存的翻译。
@@ -38,3 +38,4 @@ GTFO/BepInEx/plugins/GTFOSoundReplacer/catalog/
 直接修改文件时，只需编辑对应条目的 `zhCN` 文本，保留条目编号和英文原名。标签之间使用下划线 `_`；关卡编号保持完整，例如 `R8E1`；`expedition` 统一译为“远征”。
 
 示例：`music_expedition_successful_r8e1` → `音乐_远征_成功_R8E1`。
+需要试用持续校对中的译名时，可将地址中的 `1.0.3` 改为 `zh-cn-draft`。已有配置值会被保留，升级不会自动替换下载源。
