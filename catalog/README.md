@@ -8,8 +8,6 @@
 
 顶层 `schemaVersion` 固定为 1、`locale` 为 zh-CN；修改内容后可更新 `revision`。中文标签允许有重复（相近语义），事件身份始终由 ID 确定。
 
-审核阅读快照见 `docs/音频事件中文翻译审核表.md`。JSON 是后续修改的准本，快照不会自动回写。提交由用户手动处理；目前未上传到公开仓库。发布后将 raw JSON 的 HTTPS 地址填入插件 Catalog/TranslationUrl；未发布时可直接复制到插件 catalog/zh-CN.json 进行离线测试。
-
 ## 已确认的翻译格式
 
 - 标签分隔符使用下划线 _。
