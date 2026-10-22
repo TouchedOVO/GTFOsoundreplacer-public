@@ -21,6 +21,7 @@ namespace GTFOSoundReplacer
 
         private void Update()
         {
+            Audio.PreviewService.Tick();
             // 每帧解析最新配置，实现热键热更新。
             HotkeyBinding binding = HotkeyBinding.Parse(
                 PluginConfig.Hotkey.Value,
@@ -67,6 +68,7 @@ namespace GTFOSoundReplacer
 
         private void OnApplicationQuit()
         {
+            Audio.PreviewService.ManagedQuit();
             Audio.ListenerRouting.Shutdown();
             // 退出时自动保存当前映射。
             try
@@ -78,5 +80,6 @@ namespace GTFOSoundReplacer
                 // 忽略退出保存失败。
             }
         }
+        private void OnDestroy() { Audio.PreviewService.HostDestroyed(); }
     }
 }

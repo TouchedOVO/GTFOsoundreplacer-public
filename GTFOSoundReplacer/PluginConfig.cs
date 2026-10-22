@@ -11,7 +11,7 @@ namespace GTFOSoundReplacer
         public const string SectionGeneral = "General";
 
         public const string DefaultHotkey = "F8";
-        public const string DefaultTranslationUrl = "https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/1.0.3/catalog/zh-CN.json";
+        public const string DefaultTranslationUrl = "https://raw.githubusercontent.com/TouchedOVO/GTFOsoundreplacer-public/1.0.4/catalog/zh-CN.json";
         public const string DefaultHotkeyModifier = "None";
 
         /// <summary>GUI 主键（Unity KeyCode 名称字符串，默认 F8）。</summary>

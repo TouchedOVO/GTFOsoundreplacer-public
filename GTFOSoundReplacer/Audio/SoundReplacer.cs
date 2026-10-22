@@ -12,14 +12,12 @@ namespace GTFOSoundReplacer.Audio
 
         public ReplacementMap Map { get; }
         public SoundBankPlayer SoundBank { get; }
-        // Compatibility with current UI: both preview paths retain original shared emitter.
-        public SoundBankPlayer PreviewBank => SoundBank;
         public SoundReplacer()
         {
             Map = new ReplacementMap();
             SoundBank = new SoundBankPlayer();
         }
-        public void StopPreview() { } // Original GUI close did not stop or destroy this object.
+        public void StopPreview() { PreviewService.Stop("user-stop-or-window-close"); }
 
         /// <summary>初始化全局单例（Plugin.Load 调用）。</summary>
         public static SoundReplacer Initialize()

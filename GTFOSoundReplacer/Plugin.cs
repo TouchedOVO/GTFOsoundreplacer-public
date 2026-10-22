@@ -19,7 +19,7 @@ namespace GTFOSoundReplacer
     {
         public const string GUID = "dev.gtfo.GTFOSoundReplacer";
         public const string NAME = "GTFOSoundReplacer";
-        public const string VERSION = "1.0.3";
+        public const string VERSION = "1.0.4";
 
         /// <summary>当前插件实例（供其他模块访问 Log / Config）。</summary>
         public static Plugin Instance { get; private set; }
@@ -53,6 +53,7 @@ namespace GTFOSoundReplacer
             // 4. 应用 Harmony 钩子（CellSoundPlayer.Post Prefix）
             var harmony = new Harmony(GUID);
             harmony.PatchAll();
+            PreviewService.Initialize();
 
             // 记录实际安装的补丁数量。
             int patchedCount = 0;

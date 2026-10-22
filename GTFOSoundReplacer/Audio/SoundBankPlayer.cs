@@ -129,7 +129,7 @@ namespace GTFOSoundReplacer.Audio
         }
 
         /// <summary>Original preview uses the same persistent object and retains object gain.</summary>
-        public uint PlayRaw(uint eventId, Vector3 position)
+        public uint PlayRaw(uint eventId, Vector3 position, bool voicePreview = false)
         {
             lock (ListenerRouting.Gate)
             {
@@ -137,6 +137,17 @@ namespace GTFOSoundReplacer.Audio
                 GameObject go = EnsureEmitter();
                 go.transform.position = position;
                 if (!_route.PreparePost()) return 0;
+                if (voicePreview)
+                {
+                    // Original voice containers have no default character. Configure only our own emitter.
+                    AKRESULT character = AkSoundEngine.SetSwitch("character", "ch_01", go);
+                    AKRESULT intensity = AkSoundEngine.SetSwitch("intensity_state", "intensity_1_exploration", go);
+                    if (character != AKRESULT.AK_Success || intensity != AKRESULT.AK_Success)
+                    {
+                        Log("[PreviewOriginal] Voice switches failed: character=" + character + " intensity=" + intensity);
+                        return 0;
+                    }
+                }
                 return AkSoundEngine.PostEvent(eventId, go);
             }
         }

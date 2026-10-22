@@ -41,7 +41,8 @@ function Test-UnityMethod {
 try {
     foreach ($type in $taskAssembly.MainModule.Types) {
         if (!$type.Namespace.StartsWith('GTFOSoundReplacer.UI', [StringComparison]::Ordinal) -and
-            $type.FullName -ne 'GTFOSoundReplacer.HotkeyListener') { continue }
+            $type.FullName -ne 'GTFOSoundReplacer.HotkeyListener' -and
+            $type.FullName -ne 'GTFOSoundReplacer.Audio.PreviewEmitter') { continue }
         foreach ($method in $type.Methods) {
             # Plain managed plugin types, including its enums, must not enter an injected Unity signature.
             $injectedComponent = $type.BaseType -and $type.BaseType.FullName -eq 'UnityEngine.MonoBehaviour'

@@ -28,6 +28,7 @@ namespace GTFOSoundReplacer.UI
         private Vector2 _scroll = Vector2.zero;
         private string _search = "";
         private bool _showTranslation = false;
+        private int _previewStatusVersion;
         private string _temporaryStatus = "";
         private long _statusExpiresTick;
         private string _presetName = "";
@@ -78,6 +79,13 @@ namespace GTFOSoundReplacer.UI
             }
 
             CenterWindowOnce();
+            if (_previewStatusVersion != PreviewService.StatusVersion)
+            {
+                _previewStatusVersion = PreviewService.StatusVersion;
+                _temporaryStatus = PreviewService.Status;
+                _statusExpiresTick = System.Diagnostics.Stopwatch.GetTimestamp()
+                    + 5 * System.Diagnostics.Stopwatch.Frequency;
+            }
 
             GUILayout.BeginArea(_windowRect);
             DrawHeader();
@@ -125,6 +133,8 @@ namespace GTFOSoundReplacer.UI
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("SoundBank 音效替换", GUILayout.ExpandWidth(true));
+            if (GUILayout.Button("停止试听", GUILayout.Width(80)))
+                Replacer?.StopPreview();
             if (GUILayout.Button("X", GUILayout.Width(28)))
                 HotkeyListener.Instance.SetGuiVisible(false);
             GUILayout.EndHorizontal();
@@ -558,23 +568,15 @@ namespace GTFOSoundReplacer.UI
 
             float global = PluginConfig.GlobalVolume != null ? PluginConfig.GlobalVolume.Value : 1f;
             float volume = entry.EffectiveVolume(global);
-            Replacer.StopPreview();
-            Replacer.PreviewBank.Play(entry, AudioHook.ListenerPosition(), volume);
+            PreviewService.Request(entry.BankEventId, AudioHook.ListenerPosition(), volume, false, "替换音");
         }
 
         [HideFromIl2Cpp]
         private void PreviewOriginal(SoundEntry se)
         {
             if (Replacer == null) return;
-            try
-            {
-                Replacer.StopPreview();
-                Replacer.PreviewBank.PlayRaw(se.EventId, AudioHook.ListenerPosition());
-            }
-            catch
-            {
-                // 原音试听为尽力而为。
-            }
+            PreviewService.Request(se.EventId, AudioHook.ListenerPosition(), 1f,
+                se.Category == SoundCategory.Voice, "原音");
         }
 
         // ---------------- 辅助 ----------------

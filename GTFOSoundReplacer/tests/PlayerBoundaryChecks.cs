@@ -4,9 +4,9 @@ using System.Reflection;
 using GTFOSoundReplacer.Audio;
 
 namespace UnityEngine {
- public struct Vector3 { public float x,y,z; }
+ public struct Vector3 { public float x,y,z; public Vector3(float a,float b,float c){x=a;y=b;z=c;} }
  public class Transform { public Vector3 position; }
- public class Object { public static void DontDestroyOnLoad(Object o) {} }
+ public class Object { public static void DontDestroyOnLoad(Object o) {} public static int Destroyed; public static void Destroy(Object o){Destroyed++;if(PreviewNativeFixture.FailDestroy)throw new Exception("destroy fixture");} }
  public class GameObject : Object {
   static ulong next=100; public ulong Id; public Transform transform=new Transform();
   public GameObject(string name) { Id=next++; }
@@ -25,19 +25,44 @@ public static class PlayerEngine {
  public static readonly List<string> Calls=new List<string>();
  public static ulong LastGainEmitter, LastGainListener; public static float LastGain;
  public static bool AllMutationsLocked=true; public static void AssertLocked(){AllMutationsLocked &= System.Threading.Monitor.IsEntered(ListenerRouting.Gate);}
- public static uint PostResult=99; public static AKRESULT RegisterResult=AKRESULT.AK_Success;
+ public static AKRESULT SwitchResult=AKRESULT.AK_Success; public static uint PostResult=99; public static AKRESULT RegisterResult=AKRESULT.AK_Success;
  public static void Clear(){Calls.Clear();}
 }
+namespace Il2CppSystem { public class Object {} }
+public class AkCallbackInfo {}
+public enum AkCallbackType { AK_EndOfEvent=1 }
+public static class AkCallbackManager {
+ public sealed class EventCallback {
+  public Action<Il2CppSystem.Object,AkCallbackType,AkCallbackInfo> Handler;
+  public static implicit operator EventCallback(Action<Il2CppSystem.Object,AkCallbackType,AkCallbackInfo> action) {return new EventCallback {Handler=action};}
+ }
+}
+public static class PreviewNativeFixture {
+ public static bool FailCancel, FailScopeStop, FailDestroy;
+ public static bool EngineReady=true;
+ public static AKRESULT UnregisterResult=AKRESULT.AK_Success;
+ public static readonly List<AkCallbackManager.EventCallback> Callbacks=new List<AkCallbackManager.EventCallback>();
+}
 public static class AkSoundEngine {
+ public static bool IsInitialized(){return PreviewNativeFixture.EngineReady;}
+ public static AKRESULT UnregisterGameObj(UnityEngine.GameObject go){PlayerEngine.Calls.Add("unregister");return PreviewNativeFixture.UnregisterResult;}
+ public static void CancelEventCallbackGameObject(UnityEngine.GameObject go){if(go==null)throw new Exception("global cancel forbidden");PlayerEngine.Calls.Add("cancel");if(PreviewNativeFixture.FailCancel)throw new Exception("cancel fixture");}
+ public static void StopPlayingID(uint id){PlayerEngine.Calls.Add("stop:"+id);}
+ public static uint PostEvent(uint ev,UnityEngine.GameObject go,uint flags,AkCallbackManager.EventCallback cb,Il2CppSystem.Object cookie){PlayerEngine.AssertLocked();PlayerEngine.Calls.Add("preview-post:"+ev);PreviewNativeFixture.Callbacks.Add(cb);return PlayerEngine.PostResult;}
  public static ulong GetAkGameObjectID(UnityEngine.GameObject go) { return go==null ? ulong.MaxValue : go.Id; }
  public static AKRESULT LoadBank(IntPtr p,uint n,out uint bank) {bank=1;return AKRESULT.AK_Success;}
  public static AKRESULT UnloadBank(uint bank,IntPtr p) {return AKRESULT.AK_Success;}
  public static AKRESULT RegisterGameObj(UnityEngine.GameObject go) {PlayerEngine.Calls.Add("register");return PlayerEngine.RegisterResult;}
+ public static AKRESULT SetSwitch(string group,string value,UnityEngine.GameObject go) {PlayerEngine.AssertLocked();PlayerEngine.Calls.Add("switch:"+group+":"+value);return PlayerEngine.SwitchResult;}
  public static uint PostEvent(uint ev,UnityEngine.GameObject go) {PlayerEngine.AssertLocked();PlayerEngine.Calls.Add("post");return PlayerEngine.PostResult;}
  public static AKRESULT SetRTPCValueByPlayingID(uint rtpc,float gain,uint id) {PlayerEngine.Calls.Add("rtpc:"+rtpc+":"+id);return AKRESULT.AK_Success;}
  public static AKRESULT SetDefaultListeners(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<ulong> a,uint n) {PlayerEngine.AssertLocked();PlayerEngine.Calls.Add("defaults");return AKRESULT.AK_Success;}
 }
 public static class AkSoundEnginePINVOKE {
+ public static void CSharp_StopAll__SWIG_0(ulong id){if(id==0 || id==ulong.MaxValue)throw new Exception("global stop forbidden");PlayerEngine.Calls.Add("scope-stop");if(PreviewNativeFixture.FailScopeStop)throw new Exception("scope stop fixture");}
+ public static void CSharp_CancelEventCallbackGameObject(ulong id){PlayerEngine.Calls.Add("cancel-id");}
+ public static int CSharp_UnregisterGameObjInternal(ulong id){PlayerEngine.Calls.Add("unregister-id");return 1;}
+
  public static int CSharp_ResetListenersToDefault(ulong e) {PlayerEngine.AssertLocked();PlayerEngine.Calls.Add("reset");return 1;}
  public static int CSharp_SetGameObjectOutputBusVolume(ulong e,ulong l,float g) {
   PlayerEngine.AssertLocked();PlayerEngine.Calls.Add("gain");PlayerEngine.LastGainEmitter=e;PlayerEngine.LastGainListener=l;PlayerEngine.LastGain=g;return 1;
@@ -92,6 +117,13 @@ public static class PlayerBoundaryChecks {
   p.SetListener(null);PlayerEngine.Clear();p.PlayRaw(456,pos);
   Calls("reset,gain,post","return to default route repairs before preview post");
 
+  p=Fresh();PlayerEngine.SwitchResult=AKRESULT.AK_Success;
+  Check(p.PlayRaw(1687311561,pos,true)==99,"voice preview returns submitted playing ID");
+  Calls("register,switch:character:ch_01,switch:intensity_state:intensity_1_exploration,post","voice preview sets context on owned emitter before Post");
+  PlayerEngine.Clear();PlayerEngine.SwitchResult=AKRESULT.AK_Fail;
+  Check(p.PlayRaw(1687311561,pos,true)==0,"failed voice context reports failure");
+  Calls("switch:character:ch_01,switch:intensity_state:intensity_1_exploration","failed switch setup never posts an unconfigured voice");
+  PlayerEngine.SwitchResult=AKRESULT.AK_Success;
   p=Fresh();PlayerEngine.PostResult=0;Check(!p.Play(entry,pos,.4f),"failed post reported false");
   Calls("register,post","failed post cannot apply output gain");
   p=Fresh();Check(!p.Play(null,pos,.4f),"invalid entry rejected");Calls("","invalid entry creates no emitter");

@@ -17,6 +17,8 @@ namespace GTFOSoundReplacer.Audio
         {
             if (!_shutdown) Owned.Add(state);
         }
+        internal static void Remove(RouteBindingState state) { Owned.Remove(state); }
+        internal static int OwnedCount => Owned.Count;
         internal static void DefaultSubmitted(bool success)
         {
             if (_shutdown) return;
