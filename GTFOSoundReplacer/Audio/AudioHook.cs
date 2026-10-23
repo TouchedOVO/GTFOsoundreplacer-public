@@ -9,7 +9,7 @@ namespace GTFOSoundReplacer.Audio
     /// 主钩子共享逻辑。CellSoundPlayer.Post 共有 7 个重载（3D 带位置 / 2D global / 带回调等）。
     /// 覆盖其中 4 个无回调重载（uint/string × Vector3/bool）。带回调的 3 个重载暂不覆盖。
     ///
-    /// 替换提交成功且配置静音原音时，Prefix返回false，跳过原Post。
+    /// 替换提交成功时，Prefix返回false，跳过原Post。
     /// 其他情况放行原Post，不主动回收游戏对象。
     /// </summary>
     internal static class AudioHook
@@ -28,9 +28,7 @@ namespace GTFOSoundReplacer.Audio
             if (replacer == null)
                 return true;
 
-            bool handled = replacer.TryPlayReplacement(eventId, position, out bool muteOriginal);
-            // handled && muteOriginal → 跳过原 Post（静音原音）。不 Recycle。
-            return !(handled && muteOriginal);
+            return !replacer.TryPlayReplacement(eventId, position);
         }
 
         /// <summary>是否已就名称目录失败告警过一次（避免每个事件刷屏）。</summary>
@@ -41,7 +39,7 @@ namespace GTFOSoundReplacer.Audio
         /// 名称反向索引（SoundCatalog.LookupName，读取当前内存快照）即使抛异常，id 部分也一定照常打印；
         /// 任何一步异常都被就地消化并（仅首次）告警，绝不向音频热路径冒泡。
         /// </summary>
-        private static void LogEventId(uint eventId)
+        internal static void LogEventId(uint eventId)
         {
             string namePart;
             try

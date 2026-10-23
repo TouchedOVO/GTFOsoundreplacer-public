@@ -1,11 +1,11 @@
 param(
-    [ValidateSet('All','Route','Player','Core','Preview','PreviewNative')][string]$Suite = 'All',
+    [ValidateSet('All','Route','Player','Core','Preview','PreviewNative','ReplacementVoice')][string]$Suite = 'All',
     [string]$PowerShellPath = (Get-Process -Id $PID).Path
 )
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Tests require PowerShell 7 with System.Text.Json (pwsh).' }
 if ($Suite -eq 'All') {
-    foreach ($part in @('Route','Player','Core','Preview','PreviewNative')) {
+    foreach ($part in @('Route','Player','Core','Preview','PreviewNative','ReplacementVoice')) {
         & $PowerShellPath -NoProfile -File $PSCommandPath -Suite $part -PowerShellPath $PowerShellPath
         if ($LASTEXITCODE -ne 0) { throw "$part checks failed with exit code $LASTEXITCODE" }
     }
@@ -13,6 +13,7 @@ if ($Suite -eq 'All') {
 }
 $root = Split-Path $PSScriptRoot -Parent
 $files = switch ($Suite) {
+    'ReplacementVoice' { @('Audio/ReplacementEntry.cs','Audio/ReplacementMap.cs','Audio/ReplacementResolver.cs','Audio/VoiceRequest.cs','Audio/VoiceReplacement.cs','Audio/SoundReplacer.cs','Audio/AudioHook.cs','tests/ReplacementVoiceChecks.cs') }
     'Preview' { @('Audio/PreviewSession.cs','tests/PreviewSessionChecks.cs') }
     'PreviewNative' { @('Audio/RouteBindingState.cs','Audio/ListenerRouting.cs','Audio/SoundBankPlayer.cs','Audio/PreviewSession.cs','Audio/PreviewEmitter.cs','tests/PlayerBoundaryChecks.cs','tests/PreviewEmitterChecks.cs') }
     'Route' { @('Audio/RouteBindingState.cs','tests/ListenerBindingChecks.cs') }
@@ -36,7 +37,8 @@ if ($Suite -eq 'Core') {
     "Preset manager production checks passed: $([PresetManagerChecks]::Run())"
 } else {
     Add-Type -Path $paths
-    if ($Suite -eq 'PreviewNative') { "Preview emitter production checks passed: $([PreviewEmitterChecks]::Run())" }
+    if ($Suite -eq 'ReplacementVoice') { "Replacement and voice boundary checks passed: $([ReplacementVoiceChecks]::Run())" }
+    elseif ($Suite -eq 'PreviewNative') { "Preview emitter production checks passed: $([PreviewEmitterChecks]::Run())" }
     elseif ($Suite -eq 'Preview') { "Preview state production checks passed: $([PreviewSessionChecks]::Run())" }
     elseif ($Suite -eq 'Route') { "Listener binding production checks passed: $([ListenerBindingChecks]::Run())" }
     else { "Player boundary production checks passed: $([PlayerBoundaryChecks]::Run())" }

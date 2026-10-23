@@ -142,6 +142,7 @@
       <HintPath>$(BepInEx)\interop\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Modules-ASM"><HintPath>$(BepInEx)\interop\Modules-ASM.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="CellSound-ASM">
       <HintPath>$(BepInEx)\interop\CellSound-ASM.dll</HintPath>
       <Private>false</Private>

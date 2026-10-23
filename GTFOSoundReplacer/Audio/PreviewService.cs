@@ -13,6 +13,7 @@ namespace GTFOSoundReplacer.Audio
         private static PreviewEmitter _emitter;
         private static int _mainThread;
         private static bool _hooksReady, _nativeClosed;
+        internal static bool LifecycleReady => _hooksReady;
         internal static string Status { get; private set; } = "";
         internal static int StatusVersion { get; private set; }
         internal static void Initialize()
@@ -100,6 +101,7 @@ namespace GTFOSoundReplacer.Audio
                 {
                     if (_nativeClosed) return;
                     _nativeClosed = true;
+                    VoiceReplacement.BeforeTerm();
                     Log("term-prefix-cleanup-begin thread=" + Environment.CurrentManagedThreadId);
                     _session?.Close(true);
                     ListenerRouting.Shutdown();
@@ -117,6 +119,7 @@ namespace GTFOSoundReplacer.Audio
                     _nativeClosed = true;
                     _session?.Close(false); // Safe fallback if an unobserved engine path skipped our Term hook.
                     _emitter?.CallbackManagerGone();
+                    VoiceReplacement.CallbackManagerGone();
                     ListenerRouting.Shutdown();
                 }
             }
@@ -152,7 +155,7 @@ namespace GTFOSoundReplacer.Audio
             }
             catch (Exception e) { _nativeClosed = true; Log("host-destroyed-error " + e); }
         }
-        private static void Notify(string message, bool failed)
+        internal static void Notify(string message, bool failed)
         {
             Status = message; StatusVersion++;
             try

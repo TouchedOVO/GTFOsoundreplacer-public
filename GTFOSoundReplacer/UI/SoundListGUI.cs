@@ -29,6 +29,7 @@ namespace GTFOSoundReplacer.UI
         private string _search = "";
         private bool _showTranslation = false;
         private int _previewStatusVersion;
+        private long _voiceVolumeNoticeUntil;
         private string _temporaryStatus = "";
         private long _statusExpiresTick;
         private string _presetName = "";
@@ -426,11 +427,26 @@ namespace GTFOSoundReplacer.UI
             if (newEnabled != enabled)
                 GetOrCreateEntry(se.EventId).Enabled = newEnabled;
 
-            // 音量滑块 0–200%
+            // VO is fixed at unit gain until independent voice volume is implemented.
+            bool fixedVoiceVolume = se.Category == SoundCategory.Voice;
+            if (fixedVoiceVolume && entry != null) entry.Volume = 1f;
             float vol = entry != null ? entry.Volume : 1f;
             float newVol = GUILayout.HorizontalSlider(vol, 0f, 2f, GUILayout.Width(80));
             if (Math.Abs(newVol - vol) > 0.0001f)
-                GetOrCreateEntry(se.EventId).Volume = newVol;
+            {
+                GetOrCreateEntry(se.EventId).Volume = fixedVoiceVolume ? 1f : newVol;
+                if (fixedVoiceVolume)
+                {
+                    long now = System.Diagnostics.Stopwatch.GetTimestamp();
+                    if (now >= _voiceVolumeNoticeUntil)
+                    {
+                        _voiceVolumeNoticeUntil = now + 2 * System.Diagnostics.Stopwatch.Frequency;
+                        PreviewService.Notify("暂不支持调整语音音量", false);
+                    }
+                }
+            }
+            if (!fixedVoiceVolume && GUILayout.Button("100%", GUILayout.Width(44)))
+                GetOrCreateEntry(se.EventId).Volume = 1f;
 
             // 试听（替换音 / 原音）
             if (GUILayout.Button("▶", GUILayout.Width(26)))
@@ -567,7 +583,7 @@ namespace GTFOSoundReplacer.UI
                 return;
 
             float global = PluginConfig.GlobalVolume != null ? PluginConfig.GlobalVolume.Value : 1f;
-            float volume = entry.EffectiveVolume(global);
+            float volume = se.Category == SoundCategory.Voice ? 1f : entry.EffectiveVolume(global);
             PreviewService.Request(entry.BankEventId, AudioHook.ListenerPosition(), volume, false, "替换音");
         }
 
@@ -600,7 +616,6 @@ namespace GTFOSoundReplacer.UI
                 EventId = eventId,
                 Enabled = true,
                 Volume = 1f,
-                MuteOriginal = PluginConfig.MuteOriginalDefault != null ? PluginConfig.MuteOriginalDefault.Value : true,
             };
             Replacer.Map.Set(eventId, entry);
             return entry;

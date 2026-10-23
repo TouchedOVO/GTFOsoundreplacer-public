@@ -38,7 +38,7 @@ public static class CoreTests
         Check(new ReplacementEntry{Volume=-1}.EffectiveVolume(1)==0,"negative item volume silences");
         Check(new ReplacementEntry{Volume=1}.EffectiveVolume(.5f)==.5f,"global multiplier applied");
         Check(new ReplacementEntry{Volume=1}.EffectiveVolume(-1)==0,"negative global volume silences");
-        Check(new ReplacementEntry().Enabled && new ReplacementEntry().MuteOriginal,"entry defaults remain enabled and mute original");
+        Check(new ReplacementEntry().Enabled,"entry defaults remain enabled");
 
         var catalog=new SoundCatalog(new CatalogDocument { Events = new List<EventRecord> {
             new EventRecord { Id=2182337294, Name="melee_charged", Category="Weapon" },
@@ -59,10 +59,13 @@ public static class CoreTests
         Check(PresetCodec.Deserialize(Json(",\"sourceType\":\"soundbank\"")).Entries.Count==1,"compatible string marker is case insensitive");
         var data=PresetCodec.Deserialize(Json());var text=PresetCodec.Serialize(data);var back=PresetCodec.Deserialize(text);
         Check(!text.Contains("sourceType"),"new JSON has no source discriminator");
+        Check(!text.Contains("muteOriginal"),"removed mix flag is not serialized even when legacy JSON supplies false");
+        Check(typeof(ReplacementEntry).GetProperty("MuteOriginal") == null,"removed mix property absent from runtime model");
+        Check(PresetCodec.Deserialize(Json().Replace("\"muteOriginal\":false", "\"muteOriginal\":true")).Entries.Count == 1,"old true flag also accepted as unknown metadata");
         Check(back.Name=="测试预设" && back.Entries.Count==1,"preset name and count round-trip");
         got=back.Entries[0];
         Check(got.EventId==2182337294 && got.BankEventId==3883390140,"full uint event IDs round-trip");
-        Check(Math.Abs(got.Volume-.35f)<.000001 && got.Enabled && !got.MuteOriginal,"gain and enabled/mute flags round-trip");
+        Check(Math.Abs(got.Volume-.35f)<.000001 && got.Enabled,"gain and enabled flags round-trip");
         Check(PresetCodec.Deserialize(Json(",\"sourceType\":\"SoundBank\"")).Entries[0].BankEventId==3883390140,"compatible string marker accepted");
         Check(PresetCodec.Deserialize(Json(",\"sourceType\":1")).Entries[0].BankEventId==3883390140,"compatible numeric marker accepted");
         Check(!PresetCodec.Serialize(PresetCodec.Deserialize(Json(",\"sourceType\":1"))).Contains("sourceType"),"compatible numeric marker removed on write");

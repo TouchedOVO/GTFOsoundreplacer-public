@@ -15,9 +15,6 @@ namespace GTFOSoundReplacer.Audio
         /// <summary>音量倍率，范围0到2。</summary>
         public float Volume { get; set; } = 1.0f;
 
-        /// <summary>替换成功时是否跳过原事件。</summary>
-        public bool MuteOriginal { get; set; } = true;
-
         /// <summary>自定义 SoundBank 中的事件 ID（0 = 未分配）。</summary>
         public uint BankEventId { get; set; }
 
